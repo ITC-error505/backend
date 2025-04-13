@@ -1,6 +1,13 @@
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Pizza_Games_Endpoints.Models;
 
-app.MapGet("/", () => "Hello World!");
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Local"))
+);
+
+var app = builder.Build();
 
 app.Run();
