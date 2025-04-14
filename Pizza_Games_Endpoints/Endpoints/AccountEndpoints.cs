@@ -1,7 +1,8 @@
-﻿using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Pizza_Games_Endpoints.Models;
+using System.Runtime.CompilerServices;
 
 namespace Pizza_Games_Endpoints.Endpoints
 {
@@ -14,7 +15,10 @@ namespace Pizza_Games_Endpoints.Endpoints
             return group;
         }
 
-        public static async Task<IResult> CreateAccount(Account account, ApplicationDbContext db)
+        public static async Task<IResult> CreateAccount(
+            [FromBody] Account account,
+            ApplicationDbContext db
+        )
         {
             try
             {
