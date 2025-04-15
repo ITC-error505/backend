@@ -6,7 +6,7 @@ using Pizza_Games_Endpoints.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Local"))
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Remote"))
 );
 
 var app = builder.Build();
