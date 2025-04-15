@@ -15,7 +15,18 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(Environment.GetEnvironmentVariable("ConnectionString"))
 );
 
+builder.Services.AddCors(p =>
+    p.AddPolicy(
+        "corsapp",
+        builder =>
+        {
+            builder.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
+        }
+    )
+);
+
 var app = builder.Build();
+app.UseCors("corsapp");
 
 app.MapGroup("/account").MapAccountEndpoints();
 app.MapGroup("/score").MapScoreEndpoints();
