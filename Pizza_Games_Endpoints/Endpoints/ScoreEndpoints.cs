@@ -17,8 +17,11 @@ namespace Pizza_Games_Endpoints.Endpoints
             group.MapPost("/post", PostScore);
             group.MapGet("/highScore", GetHighScore);
             group.MapGet("/leaderboard", GetLeaderboard);
+            group.MapGet("/sse", PageRefreshManager);
             return group;
         }
+
+        private static bool brokeHighScore = false;
 
         public static async Task<IResult> PostScore([FromBody] Score score, ApplicationDbContext db)
         {
@@ -26,6 +29,15 @@ namespace Pizza_Games_Endpoints.Endpoints
             {
                 db.Scores.Add(score);
                 await db.SaveChangesAsync();
+
+                var higherScoreCount = await db
+                    .Scores.Where(s => s.gameId == score.gameId && s.score >= score.score)
+                    .CountAsync();
+                if (higherScoreCount < 10)
+                {
+                    brokeHighScore = true;
+                }
+
                 return TypedResults.Ok();
             }
             catch (DbUpdateException)
@@ -71,6 +83,17 @@ namespace Pizza_Games_Endpoints.Endpoints
                 )
                 .ToListAsync();
             return TypedResults.Ok(leaderboard);
+        }
+
+        public static async Task PageRefreshManager(HttpContext context)
+        {
+            context.Response.Headers.Add("Content-Type", "text/event-stream");
+            while (brokeHighScore)
+            {
+                await context.Response.WriteAsync($"data: Refresh at {DateTime.Now}\n\n");
+                await context.Response.Body.FlushAsync();
+                brokeHighScore = false;
+            }
         }
     }
 }
