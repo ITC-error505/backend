@@ -11,7 +11,10 @@
     "https": {
       "commandName": "Project",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "LocalConnectionString": "Host=localhost;Port=5432;Username=postgres;Password=LocalPassword;Database=pizza_test_db",
+        "JWTSecretKey": "dajslkfejalsdjfkaesjfldisakfjalsekdfjmasdolfkasjfmlesafdj"
+
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7092;http://localhost:5204"
