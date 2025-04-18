@@ -1,11 +1,14 @@
-﻿using System.Security.Principal;
+﻿using System.Security.Claims;
+using System.Security.Principal;
 using Dapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Pizza_Games_Endpoints.DTOs;
 using Pizza_Games_Endpoints.Models;
 using static System.Formats.Asn1.AsnWriter;
+using static System.Net.WebRequestMethods;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Pizza_Games_Endpoints.Endpoints
@@ -23,10 +26,19 @@ namespace Pizza_Games_Endpoints.Endpoints
 
         private static bool brokeHighScore = false;
 
-        public static async Task<IResult> PostScore([FromBody] Score score, ApplicationDbContext db)
+        [Authorize]
+        public static async Task<IResult> PostScore(
+            [FromBody] Score score,
+            ApplicationDbContext db,
+            HttpContext http
+        )
         {
             try
             {
+                // Get the userId from the token
+                var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                score.accountId = int.Parse(userId);
+
                 db.Scores.Add(score);
                 await db.SaveChangesAsync();
 
@@ -46,12 +58,15 @@ namespace Pizza_Games_Endpoints.Endpoints
             }
         }
 
+        [Authorize]
         public static async Task<IResult> GetHighScore(
-            int accountId,
             int gameId,
-            ApplicationDbContext db
+            ApplicationDbContext db,
+            HttpContext http
         )
         {
+            var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int accountId = int.Parse(userId);
             var highScore = await db
                 .Database.SqlQuery<HighScoreDTO>(
                     $@"

@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Pizza_Games_Endpoints.AuthenticationMethods;
 using Pizza_Games_Endpoints.Models;
-using System.Runtime.CompilerServices;
 
 namespace Pizza_Games_Endpoints.Endpoints
 {
@@ -44,7 +45,8 @@ namespace Pizza_Games_Endpoints.Endpoints
             {
                 return TypedResults.BadRequest("Invalid username or password");
             }
-            return TypedResults.Ok(existingAccount.id);
+            string encryptedToken = JWT.GenerateJwtToken(existingAccount);
+            return TypedResults.Ok(encryptedToken);
         }
     }
 }
