@@ -103,11 +103,16 @@ namespace Pizza_Games_Endpoints.Endpoints
         public static async Task PageRefreshManager(HttpContext context)
         {
             context.Response.Headers.Add("Content-Type", "text/event-stream");
-            while (brokeHighScore)
+            while (true)
             {
-                await context.Response.WriteAsync($"data: Refresh at {DateTime.Now}\n\n");
-                await context.Response.Body.FlushAsync();
-                brokeHighScore = false;
+                if (brokeHighScore)
+                {
+                    await context.Response.WriteAsync($"data: Refresh at {DateTime.Now}\n\n");
+                    await context.Response.Body.FlushAsync();
+                    brokeHighScore = false;
+                }
+
+                await Task.Delay(1000); // Check every 1 second to see if it should refresh
             }
         }
     }
