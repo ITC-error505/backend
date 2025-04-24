@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Data.Common;
+using System.Runtime.CompilerServices;
+using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -27,9 +29,16 @@ namespace Pizza_Games_Endpoints.Endpoints
                 await db.SaveChangesAsync();
                 return TypedResults.Ok();
             }
+            catch (UniqueConstraintException ex)
+            {
+                return TypedResults.BadRequest(
+                    "Duplicate value at "
+                        + ex.ConstraintName.Substring(ex.ConstraintName.IndexOf('_') + 1)
+                );
+            }
             catch (DbUpdateException)
             {
-                return TypedResults.BadRequest("Can't create account");
+                return TypedResults.BadRequest("Something went wrong with creating account");
             }
         }
 
@@ -38,15 +47,22 @@ namespace Pizza_Games_Endpoints.Endpoints
             ApplicationDbContext db
         )
         {
-            var existingAccount = await db.Accounts.FirstOrDefaultAsync(a =>
-                a.username == account.username && a.password == account.password
-            );
-            if (existingAccount == null)
+            try
             {
-                return TypedResults.BadRequest("Invalid username or password");
+                var existingAccount = await db.Accounts.FirstOrDefaultAsync(a =>
+                    a.username == account.username && a.password == account.password
+                );
+                if (existingAccount == null)
+                {
+                    return TypedResults.BadRequest("Invalid username or password");
+                }
+                string encryptedToken = JWT.GenerateJwtToken(existingAccount);
+                return TypedResults.Ok(encryptedToken);
             }
-            string encryptedToken = JWT.GenerateJwtToken(existingAccount);
-            return TypedResults.Ok(encryptedToken);
+            catch (Exception ex)
+            {
+                return TypedResults.BadRequest("Something went wrong with logging in");
+            }
         }
     }
 }

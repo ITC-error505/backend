@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using EntityFramework.Exceptions.PostgreSQL;
+using Microsoft.EntityFrameworkCore;
 
 namespace Pizza_Games_Endpoints.Models
 {
@@ -42,6 +43,11 @@ namespace Pizza_Games_Endpoints.Models
                 entity.HasOne(s => s.Account).WithMany().HasForeignKey(s => s.accountId);
                 entity.HasOne(s => s.Game).WithMany().HasForeignKey(s => s.gameId);
             });
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseExceptionProcessor();
         }
     }
 }

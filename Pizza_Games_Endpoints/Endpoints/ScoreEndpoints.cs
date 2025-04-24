@@ -54,7 +54,11 @@ namespace Pizza_Games_Endpoints.Endpoints
             }
             catch (DbUpdateException)
             {
-                return TypedResults.BadRequest("Can't add score");
+                return TypedResults.BadRequest("Can't add score to database");
+            }
+            catch (Exception)
+            {
+                return TypedResults.BadRequest("Something went wrong with posting score");
             }
         }
 
@@ -65,11 +69,13 @@ namespace Pizza_Games_Endpoints.Endpoints
             HttpContext http
         )
         {
-            var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            int accountId = int.Parse(userId);
-            var highScore = await db
-                .Database.SqlQuery<HighScoreDTO>(
-                    $@"
+            try
+            {
+                var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                int accountId = int.Parse(userId);
+                var highScore = await db
+                    .Database.SqlQuery<HighScoreDTO>(
+                        $@"
                     SELECT score AS ""highScore"", rank FROM (
                         SELECT 
                             score, DENSE_RANK() OVER (ORDER BY ""Scores"".score DESC) AS ""rank"", ""accountId""
@@ -78,16 +84,23 @@ namespace Pizza_Games_Endpoints.Endpoints
                     ) AS ""RankedScores""
                     WHERE ""accountId"" = {accountId}
                     LIMIT 1"
-                )
-                .FirstOrDefaultAsync();
-            return TypedResults.Ok(highScore);
+                    )
+                    .FirstOrDefaultAsync();
+                return TypedResults.Ok(highScore);
+            }
+            catch (Exception)
+            {
+                return TypedResults.BadRequest("Something went wrong with getting high score");
+            }
         }
 
         public static async Task<IResult> GetLeaderboard(int gameId, ApplicationDbContext db)
         {
-            var leaderboard = await db
-                .Database.SqlQuery<LeaderboardDTO>(
-                    $@"
+            try
+            {
+                var leaderboard = await db
+                    .Database.SqlQuery<LeaderboardDTO>(
+                        $@"
                     SELECT ""Accounts"".username AS ""username"", score, DENSE_RANK() OVER(ORDER BY score DESC) AS ""rank""
                     FROM ""Scores"" 
                     INNER JOIN ""Games"" ON ""Scores"".""gameId"" = ""Games"".id 
@@ -95,9 +108,14 @@ namespace Pizza_Games_Endpoints.Endpoints
                     WHERE ""gameId"" = {gameId}
                     ORDER BY score DESC;
                     "
-                )
-                .ToListAsync();
-            return TypedResults.Ok(leaderboard);
+                    )
+                    .ToListAsync();
+                return TypedResults.Ok(leaderboard);
+            }
+            catch (Exception)
+            {
+                return TypedResults.BadRequest("Something went wrong with getting leaderboard");
+            }
         }
 
         public static async Task PageRefreshManager(HttpContext context)
