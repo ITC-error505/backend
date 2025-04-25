@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text;
 using EntityFramework.Exceptions.Common;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ namespace Pizza_Games_Endpoints.Endpoints
         {
             group.MapPost("/login", AuthenticateAccount);
             group.MapPost("/register", CreateAccount);
-            group.MapPost("/validateTokenExpiration", ValidateTokenExpiration);
+            group.MapPost("/validateToken", ValidateToken);
             return group;
         }
 
@@ -70,20 +71,10 @@ namespace Pizza_Games_Endpoints.Endpoints
             }
         }
 
-        public static async Task<IResult> ValidateTokenExpiration(string token)
+        [Authorize]
+        public static async Task<IResult> ValidateToken()
         {
-            var handler = new JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadJwtToken(token);
-            var expInSeconds = jwtToken.Payload.Expiration;
-            var expDate = DateTimeOffset.FromUnixTimeSeconds((long)expInSeconds);
-            if (expDate > DateTime.UtcNow)
-            {
-                return TypedResults.Ok();
-            }
-            else
-            {
-                return TypedResults.BadRequest();
-            }
+            return TypedResults.Ok();
         }
     }
 }
