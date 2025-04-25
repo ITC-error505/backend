@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Pizza_Games_Endpoints.DTOs;
+using Pizza_Games_Endpoints.Endpoints.EndpointsHelper;
 using Pizza_Games_Endpoints.Models;
 using static System.Formats.Asn1.AsnWriter;
 using static System.Net.WebRequestMethods;
@@ -24,8 +25,6 @@ namespace Pizza_Games_Endpoints.Endpoints
             return group;
         }
 
-        private static bool brokeHighScore = false;
-
         [Authorize]
         public static async Task<IResult> PostScore(
             [FromBody] Score score,
@@ -43,11 +42,11 @@ namespace Pizza_Games_Endpoints.Endpoints
                 await db.SaveChangesAsync();
 
                 var higherScoreCount = await db
-                    .Scores.Where(s => s.gameId == score.gameId && s.score >= score.score)
+                    .Scores.Where(s => s.gameId == score.gameId && s.score > score.score)
                     .CountAsync();
                 if (higherScoreCount < 10)
                 {
-                    brokeHighScore = true;
+                    await ScoreBroadcaster.NotifyNewTopScore();
                 }
 
                 return TypedResults.Ok();
@@ -79,7 +78,7 @@ namespace Pizza_Games_Endpoints.Endpoints
                     SELECT score AS ""highScore"", rank FROM (
                         SELECT 
                             score, DENSE_RANK() OVER (ORDER BY ""Scores"".score DESC) AS ""rank"", ""accountId""
-                        FROM ""Scores""
+                        FROM ""Scores""    
                         WHERE ""gameId"" = {gameId}
                     ) AS ""RankedScores""
                     WHERE ""accountId"" = {accountId}
@@ -121,17 +120,27 @@ namespace Pizza_Games_Endpoints.Endpoints
         public static async Task PageRefreshManager(HttpContext context)
         {
             context.Response.Headers.Add("Content-Type", "text/event-stream");
-            while (true)
+
+            var disconnected = new TaskCompletionSource();
+            context.RequestAborted.Register(() => disconnected.TrySetResult());
+
+            async Task SendRefresh()
             {
-                if (brokeHighScore)
+                try
                 {
                     await context.Response.WriteAsync($"data: Refresh at {DateTime.Now}\n\n");
                     await context.Response.Body.FlushAsync();
-                    brokeHighScore = false;
                 }
-
-                await Task.Delay(1000); // Check every 1 second to see if it should refresh
+                catch
+                {
+                    disconnected.TrySetResult(); // client disconnected
+                }
             }
+            ScoreBroadcaster.OnScorePosted += SendRefresh;
+
+            await disconnected.Task;
+
+            ScoreBroadcaster.OnScorePosted -= SendRefresh;
         }
     }
 }
